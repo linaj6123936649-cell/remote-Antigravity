@@ -37,3 +37,7 @@
    - 重點強調：**「解耦獨立架構（FastAPI + Vanilla JS SSE）」**、**「具備自我排錯迴圈（Self-healing Loop）」**、**「支援高危險指令攔截審查（Human-in-the-Loop）」**、**「零本地黑窗常駐」**。
 
 目前在您桌面上的 `C:\Users\gongy\Desktop\RemoteCoder\README.md` 中，已經把架構圖、特色與安裝步驟寫得非常完整，搭配上述的使用指南，任何人只要照著步驟做，5 分鐘內就能完全上手！
+
+
+
+<img width="1915" height="905" alt="image" src="https://github.com/user-attachments/assets/1bd57387-32dd-490f-9bfe-26b59a9a7a0b" />
