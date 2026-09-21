@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RemoteCoder 獨立遠端 AI 工程師系統</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 頂部導覽列 -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="logo-icon">⚡</span>
+        <div>
+          <h1 class="logo-title">RemoteCoder</h1>
+          <div class="logo-desc">獨立無頭 AI 工程師系統 • 純 HTTP 對話與任務雙模</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <button type="button" id="new-task-btn" class="btn btn-sm btn-outline">➕ 開啟新對話/任務</button>
+        <span id="conn-badge" class="badge badge-online">● 伺服器在線 (HTTP 8080)</span>
+        <span id="local-ip-badge" class="badge badge-subtle">IP: 載入中...</span>
+      </div>
+    </header>
+
+    <!-- 主工作區 -->
+    <main class="app-main">
+      <!-- 左側/上方：任務發起按鈕與歷史列表 -->
+      <aside class="sidebar">
+        <!-- 頂部快速發起新對話按鈕與工作區設定 -->
+        <section class="card sidebar-action-card">
+          <button type="button" id="sidebar-new-task-btn" class="btn btn-primary btn-new-task">
+            <span class="btn-icon">➕</span> 發起新對話 / 任務
+          </button>
+          <div class="workspace-dir-compact" title="工作區路徑 (預設為當前專案目錄)">
+            <span class="dir-icon">📂</span>
+            <input type="text" id="target-dir" class="dir-input" value="." placeholder=". 或 C:\Your\Project\Path">
+          </div>
+        </section>
+
+        <!-- 歷史任務列表 -->
+        <section class="card task-history">
+          <div class="history-header">
+            <h2>📜 最近會話紀錄</h2>
+            <div class="history-actions">
+              <button type="button" id="refresh-history-btn" class="btn-icon-only" title="重新整理">🔄</button>
+              <button type="button" id="clear-all-btn" class="btn-mini btn-danger-subtle" title="清空所有歷史紀錄">🗑️ 清空全部</button>
+            </div>
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="empty-state">尚無執行任務</div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- 右側/下方：即時對話流與終端機 (並排顯示) -->
+      <section class="main-content">
+        <!-- 任務狀態列 -->
+        <div class="active-task-bar">
+          <div class="task-info">
+            <span class="task-id-badge" id="display-task-id">無進行中任務</span>
+            <div class="task-title" id="display-task-prompt">請從左側發起對話，或點選歷史紀錄回放</div>
+          </div>
+          <div class="task-actions">
+            <span id="display-task-status" class="badge badge-idle">待命中</span>
+          </div>
+        </div>
+
+        <!-- 敏感操作審批卡片 (需要確認時浮現) -->
+        <div id="approval-banner" class="approval-banner" style="display: none;">
+          <div class="approval-content">
+            <span class="approval-icon">⚠️</span>
+            <div>
+              <strong class="approval-title">操作需要您的授權確認</strong>
+              <div id="approval-reason" class="approval-desc">此操作涉及變更系統資源，請問確定要執行嗎？</div>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button type="button" id="btn-approve" class="btn btn-success">✅ 允許執行</button>
+            <button type="button" id="btn-reject" class="btn btn-danger">❌ 取消操作</button>
+          </div>
+        </div>
+
+        <!-- 左右並排工作區：左側對話流，右側即時終端機 -->
+        <div class="workspace-split" id="workspace-split">
+          <!-- 左欄：對話氣泡串流與接續發話卡片 -->
+          <div class="chat-pane">
+            <div class="pane-header">
+              <div class="pane-header-title">
+                <span class="pane-icon">💬</span> 對話與回覆串流
+              </div>
+              <span class="badge badge-subtle" style="font-size: 11px; padding: 2px 8px;">對話視窗</span>
+            </div>
+
+            <!-- 對話氣泡串流 (Chat Thread) -->
+            <div id="chat-thread" class="chat-thread">
+              <!-- 對話訊息動態插入於此 -->
+            </div>
+
+            <!-- 接續對話輸入列 (永遠可用，發起新對話或接續任務) -->
+            <div id="followup-card" class="followup-card">
+              <!-- 待發送附件預覽區 -->
+              <div id="followup-attachments" class="attachments-container"></div>
+              <form id="followup-form" class="followup-form">
+                <label class="btn-attach-icon" title="夾帶圖片/檔案 (亦可直接 Ctrl+V 貼上截圖)">
+                  <input type="file" id="followup-file-input" accept="image/*,.pdf,.txt,.py,.js,.html,.css,.json,.md,.csv" multiple style="display:none">
+                  📎
+                </label>
+                <textarea id="followup-input" class="form-textarea followup-textarea" rows="1" placeholder="輸入聊天問題、交代開發任務，或 Ctrl+V 貼上截圖 (Enter 發送 / Shift+Enter 換行)..."></textarea>
+                <button type="submit" id="followup-btn" class="btn btn-primary btn-send">
+                  <span>發送</span> 🚀
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- 右欄：即時執行終端機畫布 (SSE STREAM) -->
+          <div class="terminal-pane">
+            <div class="terminal-card" id="terminal-card">
+              <div class="terminal-top">
+                <div class="terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="terminal-title">LIVE EXECUTION TERMINAL (SSE STREAM)</div>
+                <div class="terminal-controls">
+                  <label class="autoscroll-toggle">
+                    <input type="checkbox" id="autoscroll-chk" checked> 自動滾動
+                  </label>
+                  <button type="button" id="toggle-terminal-btn" class="btn-mini">收合日誌 ▾</button>
+                  <button type="button" id="clear-terminal-btn" class="btn-mini">清空畫面</button>
+                </div>
+              </div>
+              <div id="terminal-screen" class="terminal-screen">
+                <div class="term-line term-welcome">
+                  <span class="term-prefix">[SYSTEM]</span> RemoteCoder 獨立無頭 AI 工程師終端機已就緒。
+                </div>
+                <div class="term-line term-subtle">
+                  隨時在上方或左側發送訊息，支援多輪對話、自主編程、命令執行與自我修復。
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
